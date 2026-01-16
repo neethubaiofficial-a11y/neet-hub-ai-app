@@ -311,13 +311,51 @@ async def get_user_practice_sessions(user_id: str):
     return [PracticeSession(**session) for session in sessions]
 
 
-# ==================== Test Routes ====================
+# ==================== AI MCQ Generation Route (New Architecture) ====================
 
-@api_router.post("/tests", response_model=MockTest)
-async def create_mock_test(test: MockTest):
-    """Create a mock test record"""
-    await db.mock_tests.insert_one(test.dict())
-    return test
+@api_router.post("/ai/generate-mcq")
+async def generate_mcq(request: dict):
+    """Generate NEET MCQs using the master prompt from architecture"""
+    try:
+        prompt = request.get("prompt")
+        
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=str(uuid.uuid4()),
+            system_message="You are an expert NEET-UG question creator. Always respond with valid JSON only."
+        ).with_model("openai", "gpt-5.2")
+        
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        
+        # Parse JSON response
+        import json
+        mcq_data = json.loads(response)
+        
+        return mcq_data
+        
+    except Exception as e:
+        logging.error(f"AI MCQ generation failed: {e}")
+        # Return fallback questions
+        return {
+            "subject": "Physics",
+            "chapter": "Sample",
+            "topic": "Sample",
+            "difficulty": "Moderate",
+            "questions": [
+                {
+                    "question": "What is the SI unit of force?",
+                    "options": {
+                        "A": "Newton",
+                        "B": "Joule",
+                        "C": "Watt",
+                        "D": "Pascal"
+                    },
+                    "correct": "A",
+                    "explanation": "Force is mass × acceleration, SI unit is kg⋅m/s² = Newton."
+                }
+            ]
+        }
 
 @api_router.get("/tests/{user_id}", response_model=List[MockTest])
 async def get_user_tests(user_id: str):
