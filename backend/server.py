@@ -80,6 +80,41 @@ class MockTest(BaseModel):
     weakChapters: List[str] = []
     createdAt: datetime = Field(default_factory=datetime.utcnow)
 
+class SyllabusProgress(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    userId: str
+    classType: str  # class11, class12
+    subjectId: str
+    chapterId: str
+    topicId: str
+    status: str  # not_started, in_progress, completed, revision
+    updatedAt: datetime = Field(default_factory=datetime.utcnow)
+
+class PreGeneratedQuestions(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    subject: str
+    chapter: str
+    questions: List[dict]
+    questionCount: int
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+
+class StudyPlan(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    userId: str
+    title: str
+    duration: int  # days
+    dailyHours: int
+    subjects: List[str]
+    plan: dict  # AI-generated daily plan
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+
+class ChatMessage(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    userId: str
+    message: str
+    response: str
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+
 
 # ==================== AI Helper Functions ====================
 
