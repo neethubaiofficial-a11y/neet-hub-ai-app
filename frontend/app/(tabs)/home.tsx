@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { Colors } from '../../constants/Colors';
 import { BorderRadius, FontSize, FontWeight, Spacing } from '../../constants/Spacing';
@@ -25,10 +26,13 @@ interface DailyQuestion {
 }
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { user } = useAuthStore();
   const [dailyQuestion, setDailyQuestion] = useState<DailyQuestion | null>(null);
   const [motivation, setMotivation] = useState('');
   const [loading, setLoading] = useState(true);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [showExplanation, setShowExplanation] = useState(false);
 
   // Calculate days until NEET 2026 (May 4, 2026)
   const neetDate = new Date('2026-05-04');
@@ -53,6 +57,18 @@ export default function HomeScreen() {
       setLoading(false);
     }
   };
+
+  const handleAnswerSelect = (index: number) => {
+    if (showExplanation) return;
+    setSelectedAnswer(index);
+  };
+
+  const checkAnswer = () => {
+    if (selectedAnswer === null) return;
+    setShowExplanation(true);
+  };
+
+  const isCorrect = selectedAnswer === dailyQuestion?.correctAnswer;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -89,21 +105,29 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActions}>
-            <TouchableOpacity style={styles.actionCard}>
+            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/(tabs)/practice')}>
               <Ionicons name="play-circle" size={32} color={Colors.dark.primary} />
               <Text style={styles.actionText}>Start Practice</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
+            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/(tabs)/tests')}>
               <Ionicons name="document-text" size={32} color={Colors.dark.accent} />
               <Text style={styles.actionText}>Take Test</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
+            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/ai-buddy')}>
               <Ionicons name="chatbubbles" size={32} color={Colors.dark.info} />
               <Text style={styles.actionText}>AI Buddy</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
+            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/progress')}>
               <Ionicons name="trending-up" size={32} color={Colors.dark.warning} />
               <Text style={styles.actionText}>Progress</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/study-plan')}>
+              <Ionicons name="calendar" size={32} color={Colors.dark.success} />
+              <Text style={styles.actionText}>Study Plan</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/focus-mode')}>
+              <Ionicons name="timer" size={32} color={Colors.dark.error} />
+              <Text style={styles.actionText}>Focus Mode</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -123,37 +147,76 @@ export default function HomeScreen() {
                 <Text style={styles.questionChapter}>{dailyQuestion.chapter}</Text>
               </View>
               <Text style={styles.questionText}>{dailyQuestion.question}</Text>
-              <View style={styles.questionActions}>
-                <TouchableOpacity style={styles.solveButton}>
-                  <Text style={styles.solveButtonText}>Solve Now</Text>
-                  <Ionicons name="arrow-forward" size={16} color={Colors.dark.background} />
-                </TouchableOpacity>
+              
+              <View style={styles.optionsContainer}>
+                {dailyQuestion.options.map((option, index) => {
+                  const isSelected = selectedAnswer === index;
+                  const isCorrectOption = index === dailyQuestion.correctAnswer;
+                  const showCorrect = showExplanation && isCorrectOption;
+                  const showWrong = showExplanation && isSelected && !isCorrect;
+
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.optionButton,
+                        isSelected && !showExplanation && styles.optionSelected,
+                        showCorrect && styles.optionCorrect,
+                        showWrong && styles.optionWrong,
+                      ]}
+                      onPress={() => handleAnswerSelect(index)}
+                      disabled={showExplanation}
+                    >
+                      <View style={styles.optionContent}>
+                        <View
+                          style={[
+                            styles.optionCircle,
+                            isSelected && !showExplanation && styles.optionCircleSelected,
+                            showCorrect && styles.optionCircleCorrect,
+                            showWrong && styles.optionCircleWrong,
+                          ]}
+                        >
+                          {showCorrect && (
+                            <Ionicons name="checkmark" size={12} color={Colors.dark.background} />
+                          )}
+                          {showWrong && (
+                            <Ionicons name="close" size={12} color={Colors.dark.background} />
+                          )}
+                        </View>
+                        <Text style={styles.optionText}>{option}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
+
+              {!showExplanation && selectedAnswer !== null && (
+                <TouchableOpacity style={styles.checkButton} onPress={checkAnswer}>
+                  <Text style={styles.checkButtonText}>Check Answer</Text>
+                </TouchableOpacity>
+              )}
+
+              {showExplanation && (
+                <View style={[styles.explanationCard, isCorrect ? styles.explanationCorrect : styles.explanationWrong]}>
+                  <View style={styles.explanationHeader}>
+                    <Ionicons
+                      name={isCorrect ? 'checkmark-circle' : 'close-circle'}
+                      size={24}
+                      color={isCorrect ? Colors.dark.success : Colors.dark.error}
+                    />
+                    <Text style={styles.explanationTitle}>
+                      {isCorrect ? 'Correct! 🎉' : 'Incorrect'}
+                    </Text>
+                  </View>
+                  <Text style={styles.explanationText}>{dailyQuestion.explanation}</Text>
+                </View>
+              )}
             </View>
           ) : (
             <View style={styles.loadingCard}>
               <Text style={styles.loadingText}>No question available today</Text>
             </View>
           )}
-        </View>
-
-        {/* Study Stats Preview */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Progress</Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>0</Text>
-              <Text style={styles.statLabel}>Questions Solved</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>0</Text>
-              <Text style={styles.statLabel}>Study Time</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>0%</Text>
-              <Text style={styles.statLabel}>Accuracy</Text>
-            </View>
-          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -243,8 +306,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   actionCard: {
-    flex: 1,
-    minWidth: '45%',
+    width: '31%',
     backgroundColor: Colors.dark.surface,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
@@ -252,7 +314,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   actionText: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.xs,
     fontWeight: FontWeight.medium,
     color: Colors.dark.text,
     textAlign: 'center',
@@ -293,44 +355,99 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: Spacing.md,
   },
-  questionActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+  optionsContainer: {
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
   },
-  solveButton: {
+  optionButton: {
+    backgroundColor: Colors.dark.surfaceLight,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    borderWidth: 2,
+    borderColor: Colors.dark.border,
+  },
+  optionSelected: {
+    borderColor: Colors.dark.primary,
+    backgroundColor: Colors.dark.surface,
+  },
+  optionCorrect: {
+    borderColor: Colors.dark.success,
+    backgroundColor: `${Colors.dark.success}15`,
+  },
+  optionWrong: {
+    borderColor: Colors.dark.error,
+    backgroundColor: `${Colors.dark.error}15`,
+  },
+  optionContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.dark.primary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
-  solveButtonText: {
+  optionCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: Colors.dark.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionCircleSelected: {
+    borderColor: Colors.dark.primary,
+    backgroundColor: Colors.dark.primary,
+  },
+  optionCircleCorrect: {
+    borderColor: Colors.dark.success,
+    backgroundColor: Colors.dark.success,
+  },
+  optionCircleWrong: {
+    borderColor: Colors.dark.error,
+    backgroundColor: Colors.dark.error,
+  },
+  optionText: {
+    flex: 1,
     fontSize: FontSize.sm,
+    color: Colors.dark.text,
+  },
+  checkButton: {
+    backgroundColor: Colors.dark.primary,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    alignItems: 'center',
+  },
+  checkButtonText: {
+    fontSize: FontSize.md,
     fontWeight: FontWeight.semibold,
     color: Colors.dark.background,
   },
-  statsGrid: {
+  explanationCard: {
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    marginTop: Spacing.sm,
+    borderWidth: 2,
+  },
+  explanationCorrect: {
+    borderColor: Colors.dark.success,
+    backgroundColor: `${Colors.dark.success}15`,
+  },
+  explanationWrong: {
+    borderColor: Colors.dark.error,
+    backgroundColor: `${Colors.dark.error}15`,
+  },
+  explanationHeader: {
     flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: Colors.dark.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
     alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: FontSize.xxl,
-    fontWeight: FontWeight.bold,
-    color: Colors.dark.primary,
+    gap: Spacing.xs,
     marginBottom: Spacing.xs,
   },
-  statLabel: {
-    fontSize: FontSize.xs,
-    color: Colors.dark.textSecondary,
-    textAlign: 'center',
+  explanationTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semibold,
+    color: Colors.dark.text,
+  },
+  explanationText: {
+    fontSize: FontSize.sm,
+    color: Colors.dark.text,
+    lineHeight: 20,
   },
 });
