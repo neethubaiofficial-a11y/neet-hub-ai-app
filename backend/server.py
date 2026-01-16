@@ -326,6 +326,242 @@ async def get_user_tests(user_id: str):
     return [MockTest(**test) for test in tests]
 
 
+# ==================== Syllabus Progress Routes ====================
+
+@api_router.post("/syllabus/progress")
+async def update_syllabus_progress(progress: SyllabusProgress):
+    """Update or create syllabus progress"""
+    # Find existing progress
+    existing = await db.syllabus_progress.find_one({
+        "userId": progress.userId,
+        "classType": progress.classType,
+        "subjectId": progress.subjectId,
+        "chapterId": progress.chapterId,
+        "topicId": progress.topicId
+    })
+    
+    if existing:
+        await db.syllabus_progress.update_one(
+            {"id": existing["id"]},
+            {"$set": {"status": progress.status, "updatedAt": datetime.utcnow()}}
+        )
+    else:
+        await db.syllabus_progress.insert_one(progress.dict())
+    
+    return progress
+
+@api_router.get("/syllabus/progress/{user_id}")
+async def get_syllabus_progress(user_id: str):
+    """Get all syllabus progress for a user"""
+    progress = await db.syllabus_progress.find({"userId": user_id}).to_list(1000)
+    return progress
+
+
+# ==================== Pre-generated Questions Routes ====================
+
+@api_router.get("/questions/pregenerated")
+async def get_pregenerated_questions(subject: str, chapter: str, count: int = 10):
+    """Get pre-generated questions or generate if not available"""
+    # Check for existing pre-generated questions
+    existing = await db.pregenerated_questions.find_one({
+        "subject": subject,
+        "chapter": chapter,
+        "questionCount": {"$gte": count}
+    })
+    
+    if existing and len(existing.get("questions", [])) >= count:
+        return {"questions": existing["questions"][:count]}
+    
+    # Generate new questions
+    try:
+        prompt = f"""Generate {count} NEET-level MCQ questions from {subject}, chapter: {chapter}.
+        
+Return as a JSON array in this exact format:
+[
+  {{
+    "question": "Question text",
+    "options": ["A", "B", "C", "D"],
+    "correctAnswer": 0,
+    "explanation": "Detailed explanation",
+    "subject": "{subject}",
+    "chapter": "{chapter}",
+    "topic": "Topic name",
+    "difficulty": "medium"
+  }}
+]
+
+Important:
+- All questions must be NCERT-based
+- Include detailed explanations
+- Mix difficulty levels
+- Return ONLY valid JSON array"""
+
+        response = await generate_with_ai(prompt)
+        
+        import json
+        questions_data = json.loads(response)
+        questions = [Question(**q).dict() for q in questions_data]
+        
+        # Save to database for future use
+        pregenerated = PreGeneratedQuestions(
+            subject=subject,
+            chapter=chapter,
+            questions=questions,
+            questionCount=len(questions)
+        )
+        await db.pregenerated_questions.insert_one(pregenerated.dict())
+        
+        return {"questions": questions}
+        
+    except Exception as e:
+        logging.error(f"Failed to generate questions: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate questions")
+
+
+# ==================== AI Buddy Routes ====================
+
+@api_router.post("/ai/buddy")
+async def ai_buddy_chat(userId: str, message: str):
+    """AI Buddy - Conversational NEET tutor"""
+    try:
+        prompt = f"""You are an expert NEET tutor. A student asks: "{message}"
+
+Provide a clear, concise answer:
+- If it's a concept question, explain with NCERT reference
+- If it's a problem, provide step-by-step solution
+- If it's doubt, clarify with examples
+- Keep it under 150 words
+- Be encouraging and supportive"""
+
+        response = await generate_with_ai(prompt, "You are a friendly NEET tutor helping students prepare for medical entrance exams.")
+        
+        # Save chat history
+        chat = ChatMessage(
+            userId=userId,
+            message=message,
+            response=response
+        )
+        await db.chat_messages.insert_one(chat.dict())
+        
+        return {"response": response}
+    except Exception as e:
+        return {"response": "I'm having trouble processing your question. Could you please rephrase it?"}
+
+@api_router.get("/ai/buddy/history/{user_id}")
+async def get_chat_history(user_id: str):
+    """Get chat history for AI Buddy"""
+    messages = await db.chat_messages.find({"userId": user_id}).sort("createdAt", -1).to_list(50)
+    return messages
+
+
+# ==================== Study Plan Routes ====================
+
+@api_router.post("/study-plan/generate")
+async def generate_study_plan(userId: str, dailyHours: int, duration: int, prepLevel: str, weakSubjects: List[str] = []):
+    """Generate personalized AI study plan"""
+    try:
+        weak_text = f"Focus more on: {', '.join(weakSubjects)}" if weakSubjects else ""
+        
+        prompt = f"""Create a {duration}-day NEET study plan for a {prepLevel} student who can study {dailyHours} hours daily. {weak_text}
+
+Return as JSON:
+{{
+  "title": "Plan title",
+  "dailySchedule": [
+    {{
+      "day": 1,
+      "subjects": ["Physics", "Chemistry", "Biology"],
+      "topics": ["Topic 1", "Topic 2"],
+      "hours": {dailyHours},
+      "goals": ["Goal 1", "Goal 2"]
+    }}
+  ],
+  "weeklyGoals": ["Week goal 1", "Week goal 2"],
+  "tips": ["Tip 1", "Tip 2"]
+}}
+
+Make it realistic and NCERT-focused."""
+
+        response = await generate_with_ai(prompt, "You are an expert NEET study planner.")
+        
+        import json
+        plan_data = json.loads(response)
+        
+        study_plan = StudyPlan(
+            userId=userId,
+            title=plan_data.get("title", f"{duration}-Day NEET Study Plan"),
+            duration=duration,
+            dailyHours=dailyHours,
+            subjects=["Physics", "Chemistry", "Biology"],
+            plan=plan_data
+        )
+        
+        await db.study_plans.insert_one(study_plan.dict())
+        
+        return study_plan
+        
+    except Exception as e:
+        logging.error(f"Failed to generate study plan: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate study plan")
+
+@api_router.get("/study-plan/{user_id}")
+async def get_study_plans(user_id: str):
+    """Get all study plans for a user"""
+    plans = await db.study_plans.find({"userId": user_id}).sort("createdAt", -1).to_list(10)
+    return [StudyPlan(**plan) for plan in plans]
+
+
+# ==================== Progress Analytics Routes ====================
+
+@api_router.get("/analytics/{user_id}")
+async def get_user_analytics(user_id: str):
+    """Get comprehensive analytics for user"""
+    # Get all practice sessions
+    practice_sessions = await db.practice_sessions.find({"userId": user_id}).to_list(1000)
+    
+    # Get all tests
+    tests = await db.mock_tests.find({"userId": user_id}).to_list(1000)
+    
+    # Calculate stats
+    total_questions = sum(s.get("questionsAttempted", 0) for s in practice_sessions)
+    total_correct = sum(s.get("questionsCorrect", 0) for s in practice_sessions)
+    overall_accuracy = (total_correct / total_questions * 100) if total_questions > 0 else 0
+    
+    # Subject-wise performance
+    subject_stats = {}
+    for session in practice_sessions:
+        subject = session.get("subject", "Unknown")
+        if subject not in subject_stats:
+            subject_stats[subject] = {"attempted": 0, "correct": 0}
+        subject_stats[subject]["attempted"] += session.get("questionsAttempted", 0)
+        subject_stats[subject]["correct"] += session.get("questionsCorrect", 0)
+    
+    # Calculate subject accuracy
+    for subject in subject_stats:
+        attempted = subject_stats[subject]["attempted"]
+        subject_stats[subject]["accuracy"] = (subject_stats[subject]["correct"] / attempted * 100) if attempted > 0 else 0
+    
+    # Test performance
+    test_scores = [t.get("score", 0) for t in tests]
+    avg_test_score = sum(test_scores) / len(test_scores) if test_scores else 0
+    
+    # Study time
+    total_study_time = sum(s.get("timeSpent", 0) for s in practice_sessions) + sum(t.get("timeSpent", 0) for t in tests)
+    
+    return {
+        "totalQuestions": total_questions,
+        "totalCorrect": total_correct,
+        "overallAccuracy": round(overall_accuracy, 1),
+        "subjectStats": subject_stats,
+        "testsAttempted": len(tests),
+        "avgTestScore": round(avg_test_score, 1),
+        "totalStudyTime": total_study_time,
+        "studyTimeHours": round(total_study_time / 3600, 1),
+        "recentSessions": practice_sessions[-10:],
+        "recentTests": tests[-5:]
+    }
+
+
 # ==================== Include Router ====================
 app.include_router(api_router)
 
