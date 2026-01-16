@@ -15,8 +15,8 @@ export default function Index() {
         // User is logged in, go to main app
         router.replace('/(tabs)/home');
       } else {
-        // User not logged in, go to onboarding
-        router.replace('/auth/onboarding');
+        // User not logged in, go to login
+        router.replace('/auth/login');
       }
     }
   }, [isAuthenticated, isLoading, user]);
