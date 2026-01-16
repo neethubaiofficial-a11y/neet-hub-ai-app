@@ -75,28 +75,51 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Hello, {user?.name}! 👋</Text>
-            <Text style={styles.date}>{format(today, 'EEEE, MMMM d, yyyy')}</Text>
+          <View style={styles.headerLeft}>
+            <Text style={styles.greeting}>Hey, {user?.name?.split(' ')[0]}!</Text>
+            <Text style={styles.date}>{format(today, 'EEEE, MMM d')}</Text>
           </View>
-          <TouchableOpacity style={styles.profileButton}>
+          <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/account')}>
             <Ionicons name="person-circle" size={40} color={Colors.dark.primary} />
           </TouchableOpacity>
         </View>
 
-        {/* NEET Countdown */}
-        <View style={styles.countdownCard}>
-          <View style={styles.countdownContent}>
-            <Text style={styles.countdownLabel}>Days Until NEET 2026</Text>
+        {/* NEET Countdown - Compact */}
+        <TouchableOpacity style={styles.countdownCard}>
+          <View style={styles.countdownLeft}>
+            <Ionicons name="calendar" size={32} color={Colors.dark.background} />
+          </View>
+          <View style={styles.countdownRight}>
             <Text style={styles.countdownNumber}>{daysUntilNeet}</Text>
-            <Text style={styles.countdownSubtext}>Stay focused, stay consistent!</Text>
+            <Text style={styles.countdownLabel}>Days to NEET 2026</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Quick Stats */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Ionicons name="checkmark-circle" size={24} color={Colors.dark.success} />
+            <Text style={styles.statNumber}>0</Text>
+            <Text style={styles.statLabel}>Solved Today</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Ionicons name="flame" size={24} color={Colors.dark.warning} />
+            <Text style={styles.statNumber}>0</Text>
+            <Text style={styles.statLabel}>Day Streak</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Ionicons name="trending-up" size={24} color={Colors.dark.info} />
+            <Text style={styles.statNumber}>0%</Text>
+            <Text style={styles.statLabel}>Accuracy</Text>
           </View>
         </View>
 
         {/* Daily Motivation */}
         {motivation && (
           <View style={styles.motivationCard}>
-            <Ionicons name="bulb" size={24} color={Colors.dark.warning} />
+            <View style={styles.motivationIcon}>
+              <Ionicons name="bulb" size={20} color={Colors.dark.warning} />
+            </View>
             <Text style={styles.motivationText}>{motivation}</Text>
           </View>
         )}
@@ -106,44 +129,49 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActions}>
             <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/(tabs)/practice')}>
-              <Ionicons name="play-circle" size={32} color={Colors.dark.primary} />
-              <Text style={styles.actionText}>Start Practice</Text>
+              <View style={[styles.actionIcon, { backgroundColor: `${Colors.dark.primary}20` }]}>
+                <Ionicons name="play-circle" size={28} color={Colors.dark.primary} />
+              </View>
+              <Text style={styles.actionText}>Practice</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/(tabs)/tests')}>
-              <Ionicons name="document-text" size={32} color={Colors.dark.accent} />
-              <Text style={styles.actionText}>Take Test</Text>
+              <View style={[styles.actionIcon, { backgroundColor: `${Colors.dark.accent}20` }]}>
+                <Ionicons name="document-text" size={28} color={Colors.dark.accent} />
+              </View>
+              <Text style={styles.actionText}>Mock Test</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/ai-buddy')}>
-              <Ionicons name="chatbubbles" size={32} color={Colors.dark.info} />
+              <View style={[styles.actionIcon, { backgroundColor: `${Colors.dark.info}20` }]}>
+                <Ionicons name="chatbubbles" size={28} color={Colors.dark.info} />
+              </View>
               <Text style={styles.actionText}>AI Buddy</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/progress')}>
-              <Ionicons name="trending-up" size={32} color={Colors.dark.warning} />
+              <View style={[styles.actionIcon, { backgroundColor: `${Colors.dark.success}20` }]}>
+                <Ionicons name="bar-chart" size={28} color={Colors.dark.success} />
+              </View>
               <Text style={styles.actionText}>Progress</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/study-plan')}>
-              <Ionicons name="calendar" size={32} color={Colors.dark.success} />
-              <Text style={styles.actionText}>Study Plan</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/focus-mode')}>
-              <Ionicons name="timer" size={32} color={Colors.dark.error} />
-              <Text style={styles.actionText}>Focus Mode</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Daily Question */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Daily NEET Question</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Daily Challenge</Text>
+            <Ionicons name="star" size={20} color={Colors.dark.warning} />
+          </View>
           {loading ? (
             <View style={styles.loadingCard}>
               <ActivityIndicator size="large" color={Colors.dark.primary} />
-              <Text style={styles.loadingText}>Generating today's question...</Text>
+              <Text style={styles.loadingText}>Generating question...</Text>
             </View>
           ) : dailyQuestion ? (
             <View style={styles.questionCard}>
               <View style={styles.questionHeader}>
-                <Text style={styles.questionSubject}>{dailyQuestion.subject}</Text>
+                <View style={styles.subjectBadge}>
+                  <Text style={styles.subjectBadgeText}>{dailyQuestion.subject}</Text>
+                </View>
                 <Text style={styles.questionChapter}>{dailyQuestion.chapter}</Text>
               </View>
               <Text style={styles.questionText}>{dailyQuestion.question}</Text>
@@ -193,6 +221,7 @@ export default function HomeScreen() {
               {!showExplanation && selectedAnswer !== null && (
                 <TouchableOpacity style={styles.checkButton} onPress={checkAnswer}>
                   <Text style={styles.checkButtonText}>Check Answer</Text>
+                  <Ionicons name="arrow-forward" size={16} color={Colors.dark.background} />
                 </TouchableOpacity>
               )}
 
@@ -201,11 +230,11 @@ export default function HomeScreen() {
                   <View style={styles.explanationHeader}>
                     <Ionicons
                       name={isCorrect ? 'checkmark-circle' : 'close-circle'}
-                      size={24}
+                      size={20}
                       color={isCorrect ? Colors.dark.success : Colors.dark.error}
                     />
                     <Text style={styles.explanationTitle}>
-                      {isCorrect ? 'Correct! 🎉' : 'Incorrect'}
+                      {isCorrect ? 'Correct!' : 'Incorrect'}
                     </Text>
                   </View>
                   <Text style={styles.explanationText}>{dailyQuestion.explanation}</Text>
