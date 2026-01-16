@@ -1,25 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '../../store/authStore';
 import { Colors } from '../../constants/Colors';
 import { BorderRadius, FontSize, FontWeight, Spacing } from '../../constants/Spacing';
 import { NEETSyllabus } from '../../constants/Syllabus';
+import api from '../../utils/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type ClassType = 'class11' | 'class12';
+type Status = 'not_started' | 'in_progress' | 'completed' | 'revision';
+
+interface TopicProgress {
+  topicId: string;
+  status: Status;
+}
 
 export default function SyllabusScreen() {
+  const { user } = useAuthStore();
   const [selectedClass, setSelectedClass] = useState<ClassType>('class12');
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
   const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
+  const [progress, setProgress] = useState<Record<string, Status>>({});
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedTopic, setSelectedTopic] = useState<any>(null);
 
   const syllabusData = NEETSyllabus[selectedClass];
+
+  useEffect(() => {
+    loadProgress();
+  }, [selectedClass]);
+
+  const loadProgress = async () => {
+    try {
+      const key = `syllabus_progress_${user?.id}_${selectedClass}`;
+      const saved = await AsyncStorage.getItem(key);
+      if (saved) {
+        setProgress(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Failed to load progress:', error);
+    }
+  };
+
+  const saveProgress = async (newProgress: Record<string, Status>) => {
+    try {
+      const key = `syllabus_progress_${user?.id}_${selectedClass}`;
+      await AsyncStorage.setItem(key, JSON.stringify(newProgress));
+      setProgress(newProgress);
+    } catch (error) {
+      console.error('Failed to save progress:', error);
+    }
+  };
 
   const toggleSubject = (subjectId: string) => {
     setExpandedSubject(expandedSubject === subjectId ? null : subjectId);
@@ -30,11 +70,52 @@ export default function SyllabusScreen() {
     setExpandedChapter(expandedChapter === chapterId ? null : chapterId);
   };
 
+  const openStatusModal = (subject: any, chapter: any, topic: any) => {
+    setSelectedTopic({ subject, chapter, topic });
+    setModalVisible(true);
+  };
+
+  const updateTopicStatus = async (status: Status) => {
+    if (!selectedTopic) return;
+    
+    const key = `${selectedTopic.subject.id}_${selectedTopic.chapter.id}_${selectedTopic.topic.id}`;
+    const newProgress = { ...progress, [key]: status };
+    await saveProgress(newProgress);
+    setModalVisible(false);
+  };
+
+  const getTopicStatus = (subjectId: string, chapterId: string, topicId: string): Status => {
+    const key = `${subjectId}_${chapterId}_${topicId}`;
+    return progress[key] || 'not_started';
+  };
+
+  const getStatusIcon = (status: Status) => {
+    switch (status) {
+      case 'completed':
+        return { name: 'checkmark-circle' as const, color: Colors.dark.success };
+      case 'in_progress':
+        return { name: 'time' as const, color: Colors.dark.warning };
+      case 'revision':
+        return { name: 'refresh-circle' as const, color: Colors.dark.info };
+      default:
+        return { name: 'ellipse-outline' as const, color: Colors.dark.textTertiary };
+    }
+  };
+
+  const getStatusLabel = (status: Status) => {
+    switch (status) {
+      case 'completed': return 'Completed';
+      case 'in_progress': return 'In Progress';
+      case 'revision': return 'Needs Revision';
+      default: return 'Not Started';
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>NEET Syllabus</Text>
-        <Text style={styles.headerSubtitle}>Complete Class 11 & 12 Coverage</Text>
+        <Text style={styles.headerSubtitle}>Track Your Progress</Text>
       </View>
 
       {/* Class Selector */}
@@ -129,16 +210,28 @@ export default function SyllabusScreen() {
 
                     {expandedChapter === chapter.id && (
                       <View style={styles.topicsContainer}>
-                        {chapter.topics.map((topic) => (
-                          <View key={topic.id} style={styles.topicRow}>
-                            <Ionicons
-                              name="ellipse"
-                              size={8}
-                              color={Colors.dark.accent}
-                            />
-                            <Text style={styles.topicText}>{topic.name}</Text>
-                          </View>
-                        ))}
+                        {chapter.topics.map((topic) => {
+                          const status = getTopicStatus(subject.id, chapter.id, topic.id);
+                          const statusIcon = getStatusIcon(status);
+                          
+                          return (
+                            <TouchableOpacity
+                              key={topic.id}
+                              style={styles.topicRow}
+                              onPress={() => openStatusModal(subject, chapter, topic)}
+                            >
+                              <Ionicons
+                                name={statusIcon.name}
+                                size={20}
+                                color={statusIcon.color}
+                              />
+                              <Text style={styles.topicText}>{topic.name}</Text>
+                              <Text style={[styles.topicStatus, { color: statusIcon.color }]}>
+                                {getStatusLabel(status)}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
                       </View>
                     )}
                   </View>
@@ -148,6 +241,63 @@ export default function SyllabusScreen() {
           </View>
         ))}
       </ScrollView>
+
+      {/* Status Selection Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Update Status</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Ionicons name="close" size={24} color={Colors.dark.text} />
+              </TouchableOpacity>
+            </View>
+            
+            {selectedTopic && (
+              <Text style={styles.modalSubtitle}>{selectedTopic.topic.name}</Text>
+            )}
+
+            <View style={styles.statusOptions}>
+              <TouchableOpacity
+                style={styles.statusOption}
+                onPress={() => updateTopicStatus('not_started')}
+              >
+                <Ionicons name="ellipse-outline" size={24} color={Colors.dark.textTertiary} />
+                <Text style={styles.statusOptionText}>Not Started</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.statusOption}
+                onPress={() => updateTopicStatus('in_progress')}
+              >
+                <Ionicons name="time" size={24} color={Colors.dark.warning} />
+                <Text style={styles.statusOptionText}>In Progress</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.statusOption}
+                onPress={() => updateTopicStatus('completed')}
+              >
+                <Ionicons name="checkmark-circle" size={24} color={Colors.dark.success} />
+                <Text style={styles.statusOptionText}>Completed</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.statusOption}
+                onPress={() => updateTopicStatus('revision')}
+              >
+                <Ionicons name="refresh-circle" size={24} color={Colors.dark.info} />
+                <Text style={styles.statusOptionText}>Needs Revision</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -274,10 +424,59 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
   },
   topicText: {
+    flex: 1,
     fontSize: FontSize.sm,
+    color: Colors.dark.text,
+  },
+  topicStatus: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.medium,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.dark.surface,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  modalTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.bold,
+    color: Colors.dark.text,
+  },
+  modalSubtitle: {
+    fontSize: FontSize.md,
     color: Colors.dark.textSecondary,
+    marginBottom: Spacing.lg,
+  },
+  statusOptions: {
+    gap: Spacing.sm,
+  },
+  statusOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    backgroundColor: Colors.dark.surfaceLight,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  statusOptionText: {
+    fontSize: FontSize.md,
+    color: Colors.dark.text,
+    fontWeight: FontWeight.medium,
   },
 });
