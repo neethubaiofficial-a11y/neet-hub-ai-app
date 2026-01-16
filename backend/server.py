@@ -357,6 +357,15 @@ async def generate_mcq(request: dict):
             ]
         }
 
+
+# ==================== Test Routes ====================
+
+@api_router.post("/tests", response_model=MockTest)
+async def create_mock_test(test: MockTest):
+    """Create a mock test record"""
+    await db.mock_tests.insert_one(test.dict())
+    return test
+
 @api_router.get("/tests/{user_id}", response_model=List[MockTest])
 async def get_user_tests(user_id: str):
     """Get all mock tests for a user"""
