@@ -265,7 +265,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  headerLeft: {
+    flex: 1,
   },
   greeting: {
     fontSize: FontSize.xxl,
@@ -282,65 +285,108 @@ const styles = StyleSheet.create({
   },
   countdownCard: {
     backgroundColor: Colors.dark.primary,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    marginBottom: Spacing.md,
-  },
-  countdownContent: {
-    alignItems: 'center',
-  },
-  countdownLabel: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.medium,
-    color: Colors.dark.background,
-    marginBottom: Spacing.sm,
-  },
-  countdownNumber: {
-    fontSize: 64,
-    fontWeight: FontWeight.bold,
-    color: Colors.dark.background,
-  },
-  countdownSubtext: {
-    fontSize: FontSize.sm,
-    color: Colors.dark.background,
-    marginTop: Spacing.xs,
-  },
-  motivationCard: {
-    backgroundColor: Colors.dark.surface,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  countdownLeft: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  countdownRight: {
+    flex: 1,
+  },
+  countdownNumber: {
+    fontSize: 32,
+    fontWeight: FontWeight.bold,
+    color: Colors.dark.background,
+  },
+  countdownLabel: {
+    fontSize: FontSize.sm,
+    color: Colors.dark.background,
+    opacity: 0.9,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: Colors.dark.surface,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.bold,
+    color: Colors.dark.text,
+    marginTop: Spacing.xs,
+  },
+  statLabel: {
+    fontSize: FontSize.xs,
+    color: Colors.dark.textSecondary,
+    marginTop: Spacing.xs,
+    textAlign: 'center',
+  },
+  motivationCard: {
+    backgroundColor: Colors.dark.surface,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
     marginBottom: Spacing.lg,
+  },
+  motivationIcon: {
+    marginTop: 2,
   },
   motivationText: {
     flex: 1,
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
     color: Colors.dark.text,
-    lineHeight: 22,
+    lineHeight: 20,
   },
   section: {
     marginBottom: Spacing.lg,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
   },
   sectionTitle: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
     color: Colors.dark.text,
-    marginBottom: Spacing.md,
   },
   quickActions: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   actionCard: {
-    width: '31%',
+    flex: 1,
     backgroundColor: Colors.dark.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionText: {
     fontSize: FontSize.xs,
@@ -356,7 +402,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
     color: Colors.dark.textSecondary,
   },
   questionCard: {
@@ -366,13 +412,20 @@ const styles = StyleSheet.create({
   },
   questionHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: Spacing.md,
   },
-  questionSubject: {
-    fontSize: FontSize.sm,
+  subjectBadge: {
+    backgroundColor: Colors.dark.primary,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+  },
+  subjectBadgeText: {
+    fontSize: FontSize.xs,
     fontWeight: FontWeight.semibold,
-    color: Colors.dark.primary,
+    color: Colors.dark.background,
   },
   questionChapter: {
     fontSize: FontSize.xs,
@@ -442,7 +495,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.primary,
     borderRadius: BorderRadius.md,
     padding: Spacing.sm,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
   },
   checkButtonText: {
     fontSize: FontSize.md,
@@ -470,7 +526,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   explanationTitle: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
     fontWeight: FontWeight.semibold,
     color: Colors.dark.text,
   },
