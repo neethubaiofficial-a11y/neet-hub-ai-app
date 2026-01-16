@@ -79,7 +79,7 @@ export default function HomeScreen() {
             <Text style={styles.greeting}>Hey, {user?.name?.split(' ')[0]}!</Text>
             <Text style={styles.date}>{format(today, 'EEEE, MMM d')}</Text>
           </View>
-          <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/account')}>
+          <TouchableOpacity style={styles.profileButton}>
             <Ionicons name="person-circle" size={40} color={Colors.dark.primary} />
           </TouchableOpacity>
         </View>
