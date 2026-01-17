@@ -13,16 +13,10 @@ import { useAuthStore } from '../../store/authStore';
 import { Colors } from '../../constants/Colors';
 import { BorderRadius, FontSize, FontWeight, Spacing } from '../../constants/Spacing';
 import { NEETSyllabus } from '../../constants/Syllabus';
-import api from '../../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type ClassType = 'class11' | 'class12';
 type Status = 'not_started' | 'in_progress' | 'completed' | 'revision';
-
-interface TopicProgress {
-  topicId: string;
-  status: Status;
-}
 
 export default function SyllabusScreen() {
   const { user } = useAuthStore();
@@ -89,6 +83,23 @@ export default function SyllabusScreen() {
     return progress[key] || 'not_started';
   };
 
+  // Calculate chapter completion status
+  const getChapterStatus = (subjectId: string, chapter: any): Status => {
+    const topicStatuses = chapter.topics.map((topic: any) =>
+      getTopicStatus(subjectId, chapter.id, topic.id)
+    );
+    
+    const allCompleted = topicStatuses.every((s: Status) => s === 'completed');
+    const someCompleted = topicStatuses.some((s: Status) => s === 'completed');
+    const anyInProgress = topicStatuses.some((s: Status) => s === 'in_progress');
+    const anyRevision = topicStatuses.some((s: Status) => s === 'revision');
+    
+    if (allCompleted) return 'completed';
+    if (anyRevision) return 'revision';
+    if (anyInProgress || someCompleted) return 'in_progress';
+    return 'not_started';
+  };
+
   const getStatusIcon = (status: Status) => {
     switch (status) {
       case 'completed':
@@ -118,7 +129,6 @@ export default function SyllabusScreen() {
         <Text style={styles.headerSubtitle}>Track Your Progress</Text>
       </View>
 
-      {/* Class Selector */}
       <View style={styles.classSelector}>
         <TouchableOpacity
           style={[
@@ -187,62 +197,81 @@ export default function SyllabusScreen() {
 
             {expandedSubject === subject.id && (
               <View style={styles.chaptersContainer}>
-                {subject.chapters.map((chapter, index) => (
-                  <View key={chapter.id} style={styles.chapterCard}>
-                    <TouchableOpacity
-                      style={styles.chapterHeader}
-                      onPress={() => toggleChapter(chapter.id)}
-                    >
-                      <View style={styles.chapterTitleRow}>
-                        <Text style={styles.chapterNumber}>{index + 1}</Text>
-                        <Text style={styles.chapterTitle}>{chapter.name}</Text>
-                      </View>
-                      <Ionicons
-                        name={
-                          expandedChapter === chapter.id
-                            ? 'chevron-up'
-                            : 'chevron-down'
-                        }
-                        size={16}
-                        color={Colors.dark.textSecondary}
-                      />
-                    </TouchableOpacity>
+                {subject.chapters.map((chapter, index) => {
+                  const chapterStatus = getChapterStatus(subject.id, chapter);
+                  const chapterStatusIcon = getStatusIcon(chapterStatus);
+                  const isCompleted = chapterStatus === 'completed';
+                  
+                  return (
+                    <View key={chapter.id} style={[
+                      styles.chapterCard,
+                      isCompleted && styles.chapterCardCompleted
+                    ]}>
+                      <TouchableOpacity
+                        style={styles.chapterHeader}
+                        onPress={() => toggleChapter(chapter.id)}
+                      >
+                        <View style={styles.chapterTitleRow}>
+                          <Text style={[
+                            styles.chapterNumber,
+                            isCompleted && styles.chapterNumberCompleted
+                          ]}>{index + 1}</Text>
+                          <Text style={[
+                            styles.chapterTitle,
+                            isCompleted && styles.chapterTitleCompleted
+                          ]}>{chapter.name}</Text>
+                          <Ionicons
+                            name={chapterStatusIcon.name}
+                            size={20}
+                            color={chapterStatusIcon.color}
+                          />
+                        </View>
+                        <Ionicons
+                          name={
+                            expandedChapter === chapter.id
+                              ? 'chevron-up'
+                              : 'chevron-down'
+                          }
+                          size={16}
+                          color={Colors.dark.textSecondary}
+                        />
+                      </TouchableOpacity>
 
-                    {expandedChapter === chapter.id && (
-                      <View style={styles.topicsContainer}>
-                        {chapter.topics.map((topic) => {
-                          const status = getTopicStatus(subject.id, chapter.id, topic.id);
-                          const statusIcon = getStatusIcon(status);
-                          
-                          return (
-                            <TouchableOpacity
-                              key={topic.id}
-                              style={styles.topicRow}
-                              onPress={() => openStatusModal(subject, chapter, topic)}
-                            >
-                              <Ionicons
-                                name={statusIcon.name}
-                                size={20}
-                                color={statusIcon.color}
-                              />
-                              <Text style={styles.topicText}>{topic.name}</Text>
-                              <Text style={[styles.topicStatus, { color: statusIcon.color }]}>
-                                {getStatusLabel(status)}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </View>
-                    )}
-                  </View>
-                ))}
+                      {expandedChapter === chapter.id && (
+                        <View style={styles.topicsContainer}>
+                          {chapter.topics.map((topic) => {
+                            const status = getTopicStatus(subject.id, chapter.id, topic.id);
+                            const statusIcon = getStatusIcon(status);
+                            
+                            return (
+                              <TouchableOpacity
+                                key={topic.id}
+                                style={styles.topicRow}
+                                onPress={() => openStatusModal(subject, chapter, topic)}
+                              >
+                                <Ionicons
+                                  name={statusIcon.name}
+                                  size={18}
+                                  color={statusIcon.color}
+                                />
+                                <Text style={styles.topicText}>{topic.name}</Text>
+                                <Text style={[styles.topicStatus, { color: statusIcon.color }]}>
+                                  {getStatusLabel(status)}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
               </View>
             )}
           </View>
         ))}
       </ScrollView>
 
-      {/* Status Selection Modal */}
       <Modal
         visible={modalVisible}
         transparent
@@ -391,6 +420,12 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.sm,
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  chapterCardCompleted: {
+    borderColor: Colors.dark.success,
+    backgroundColor: `${Colors.dark.success}15`,
   },
   chapterHeader: {
     flexDirection: 'row',
@@ -410,11 +445,18 @@ const styles = StyleSheet.create({
     color: Colors.dark.primary,
     width: 24,
   },
+  chapterNumberCompleted: {
+    color: Colors.dark.success,
+  },
   chapterTitle: {
     fontSize: FontSize.md,
     fontWeight: FontWeight.medium,
     color: Colors.dark.text,
     flex: 1,
+  },
+  chapterTitleCompleted: {
+    color: Colors.dark.success,
+    fontWeight: FontWeight.semibold,
   },
   topicsContainer: {
     paddingHorizontal: Spacing.md,
