@@ -1,0 +1,39 @@
+
+  "project_info": {
+    "project_number": "249106354442",
+    "project_id": "neethub0ai",
+    "storage_bucket": "neethub0ai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:249106354442:android:bdd48595885ae02fc86af3",
+        "android_client_info": {
+          "package_name": "neethub.ai"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "249106354442-apg6f8sm9009th1if2p5rro7eqoa55of.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAzSQfxt07X2oVEZmE8cdFw-OzG7BHWnJc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "249106354442-apg6f8sm9009th1if2p5rro7eqoa55of.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

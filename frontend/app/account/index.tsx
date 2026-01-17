@@ -13,6 +13,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { BorderRadius, FontSize, FontWeight, Spacing } from '../../constants/Spacing';
 import { useAuthStore } from '../../store/authStore';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../config/firebase';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -28,15 +30,24 @@ export default function AccountScreen() {
           text: 'Logout',
           style: 'destructive',
           onPress: async () => {
-            await logout();
-            router.replace('/auth/login');
+            try {
+              // Sign out from Firebase
+              await signOut(auth);
+              // Clear local state
+              await logout();
+              // Redirect to login
+              router.replace('/auth/login');
+            } catch (error) {
+              console.error('Logout error:', error);
+              alert('Logout failed. Please try again.');
+            }
           },
         },
       ]
     );
   };
 
-  const isGuest = user?.email?.includes('guest');
+  const isGuest = user?.email?.includes('guest') || user?.loginMethod === 'guest';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -59,6 +70,28 @@ export default function AccountScreen() {
           {isGuest && (
             <View style={styles.guestBadge}>
               <Text style={styles.guestBadgeText}>Guest Account</Text>
+            </View>
+          )}
+          {user?.loginMethod && (
+            <View style={styles.loginMethodBadge}>
+              <Ionicons
+                name={
+                  user.loginMethod === 'google'
+                    ? 'logo-google'
+                    : user.loginMethod === 'email'
+                    ? 'mail'
+                    : 'person'
+                }
+                size={14}
+                color={Colors.dark.background}
+              />
+              <Text style={styles.loginMethodText}>
+                {user.loginMethod === 'google'
+                  ? 'Google'
+                  : user.loginMethod === 'email'
+                  ? 'Email'
+                  : 'Guest'}
+              </Text>
             </View>
           )}
         </View>
@@ -145,7 +178,7 @@ export default function AccountScreen() {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
-        <Text style={styles.version}>Version 1.0.0</Text>
+        <Text style={styles.version}>Version 1.0.0 • Firebase Auth Active</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -192,15 +225,31 @@ const styles = StyleSheet.create({
   email: {
     fontSize: FontSize.md,
     color: Colors.dark.textSecondary,
+    marginBottom: Spacing.sm,
   },
   guestBadge: {
     backgroundColor: Colors.dark.warning,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   guestBadgeText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+    color: Colors.dark.background,
+  },
+  loginMethodBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    backgroundColor: Colors.dark.primary,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
+  loginMethodText: {
     fontSize: FontSize.xs,
     fontWeight: FontWeight.semibold,
     color: Colors.dark.background,

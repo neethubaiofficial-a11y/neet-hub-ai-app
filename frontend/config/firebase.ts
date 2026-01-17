@@ -2,14 +2,14 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// Firebase configuration
+// Firebase configuration - LIVE
 const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || 'demo-api-key',
-  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || 'neethub-demo.firebaseapp.com',
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || 'neethub-demo',
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || 'neethub-demo.appspot.com',
-  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '123456789',
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '1:123456789:web:abcdef'
+  apiKey: "AIzaSyAzSQfxt07X2oVEZmE8cdFw-OzG7BHWnJc",
+  authDomain: "neethub0ai.firebaseapp.com",
+  projectId: "neethub0ai",
+  storageBucket: "neethub0ai.firebasestorage.app",
+  messagingSenderId: "249106354442",
+  appId: "1:249106354442:web:bdd48595885ae02fc86af3"
 };
 
 // Initialize Firebase
